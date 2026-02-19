@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Detail - OncoDerma AI{% endblock %}
+
+{% block content %}
+<style>
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.875rem;
+  }
+
+  .prose th,
+  .prose td {
+    border: 1px solid rgba(75, 85, 99, 0.4);
+    padding: 0.5rem;
+    text-align: left;
+  }
+
+  .prose th {
+    background-color: rgba(31, 41, 55, 0.5);
+    font-weight: 600;
+    color: #f3f4f6;
+  }
+
+  .prose td {
+    color: #e5e7eb;
+  }
+</style>
+<div class="flex flex-col lg:flex-row min-h-screen">
+
+  <main class="flex-1 p-6">
+    <div class="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-xl shadow-2xl p-6">
+      <h1 class="text-2xl font-bold mb-8 text-slate-100 uppercase tracking-widest">Scan Details</h1>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="space-y-6">
+          <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Patient</h4>
+            <p class="font-medium text-slate-200 text-lg">{{ scan.patient_name }}</p>
+          </div>
+
+          <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Date</h4>
+            <p class="font-medium text-slate-200">{{ scan.timestamp|date:"Y-m-d H:i" }}</p>
+          </div>
+
+          <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Scan Type</h4>
+            <p class="font-medium text-slate-200">{{ scan.scan_type }}</p>
+          </div>
+
+          <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            <a href="{% url 'history' %}"
+              class="inline-flex items-center text-indigo-400 hover:text-indigo-300 transition-colors font-medium text-sm">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to History
+            </a>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Result</h4>
+            <span class="px-4 py-2 text-xs font-bold rounded-full uppercase tracking-wider
+              {% if 'Low' in scan.risk_level %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+              {% elif 'High' in scan.risk_level %}bg-rose-500/10 text-rose-400 border border-rose-500/20
+              {% else %}bg-amber-500/10 text-amber-400 border border-amber-500/20{% endif %}">
+              {{ scan.result }}
+            </span>
+          </div>
+
+          <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Confidence</h4>
+            <p class="font-medium text-indigo-400 font-mono">{{ scan.confidence }}%</p>
+          </div>
+
+          <div>
+            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Image Analysis</h4>
+            {% if scan.image_file %}
+            <div class="rounded-2xl overflow-hidden border-2 border-slate-700/50 shadow-2xl relative group">
+              <img src="{{ scan.image_file.url }}" alt="Skin Image"
+                class="w-full h-64 object-cover transform group-hover:scale-105 transition-transform duration-700">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none"></div>
+            </div>
+            {% else %}
+            <p class="text-gray-500">No image uploaded</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Chat Assistant -->
+      <div class="mt-8 bg-slate-800/40 p-6 rounded-xl border border-slate-700/50">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center">
+            <div
+              class="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center mr-3 border border-indigo-500/20">
+              <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-slate-100">OncoDerma AI Assistant</h2>
+              <p class="text-xs text-slate-400">Ask questions about this diagnosis</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="chat-history"
+          class="h-64 overflow-y-auto mb-4 space-y-4 pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+          <!-- Welcome Message -->
+          <div class="flex items-start">
+            <div class="flex-shrink-0 mr-3">
+              <div
+                class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                AI</div>
+            </div>
+            <div
+              class="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl rounded-tl-none p-3 text-sm text-slate-200">
+              <p>Hello! I'm your medical assistant. I can help you understand the diagnosis of
+                <strong>{{ scan.result }}</strong>. What would you like to know?
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative">
+          <input type="text" id="chat-input"
+            class="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3 pl-4 pr-12 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all"
+            placeholder="Type your question here...">
+          <button id="send-btn"
+            class="absolute right-2 top-1.5 p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-lg shadow-indigo-900/20">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-500 mt-2 text-center">AI can make mistakes. Please consult a professional
+          dermatologist.</p>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const chatHistory = document.getElementById('chat-history');
+    const scanId = "{{ scan.id }}";
+
+    function appendMessage(role, text) {
+      const div = document.createElement('div');
+      div.className = 'flex items-start ' + (role === 'user' ? 'justify-end' : '');
+
+      let content = '';
+      if (role === 'ai') {
+        content = `
+                <div class="flex-shrink-0 mr-3">
+                    <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">AI</div>
+                </div>
+                <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl rounded-tl-none p-3 text-sm text-slate-200 max-w-[80%] prose prose-invert prose-sm max-w-none">
+                    ${marked.parse(text)}
+                </div>
+            `;
+      } else {
+        content = `
+                <div class="bg-slate-700 rounded-2xl rounded-tr-none p-3 text-sm text-white max-w-[80%]">
+                    <p>${text}</p>
+                </div>
+            `;
+      }
+
+      div.innerHTML = content;
+      chatHistory.appendChild(div);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    function showTyping() {
+      const div = document.createElement('div');
+      div.id = 'typing-indicator';
+      div.className = 'flex items-start';
+      div.innerHTML = `
+            <div class="flex-shrink-0 mr-3">
+                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">AI</div>
+            </div>
+            <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl rounded-tl-none p-3 text-sm text-slate-200">
+                <div class="flex space-x-1">
+                    <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+                </div>
+            </div>
+        `;
+      chatHistory.appendChild(div);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    function removeTyping() {
+      const el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    function sendMessage() {
+      const message = chatInput.value.trim();
+      if (!message) return;
+
+      appendMessage('user', message);
+      chatInput.value = '';
+      showTyping();
+
+      fetch('{% url "chat" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          message: message,
+          scan_id: scanId
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          removeTyping();
+          if (data.error) {
+            appendMessage('ai', 'Sorry, I encountered an error: ' + data.error);
+          } else {
+            appendMessage('ai', data.response);
+          }
+        })
+        .catch(error => {
+          removeTyping();
+          appendMessage('ai', 'Sorry, something went wrong. Please try again.');
+          console.error('Error:', error);
+        });
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+  });
+</script>
+{% endblock %}
